@@ -609,10 +609,10 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
   ];
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#000', overflow: 'hidden' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#000', overflow: 'hidden' }}>
 
       {/* Header */}
-      <header style={{ height: '56px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: '#000', flexShrink: 0 }}>
+      <header className="app-header" style={{ height: '56px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: '#000', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#fff', letterSpacing: '0.15em' }}>◈</span>
           <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Onboard GTM</span>
@@ -625,9 +625,9 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
         </div>
       </header>
 
-      <div className="mobile-drawer-toggle" onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
-        {isDrawerOpen ? 'Close Pipeline & Inbox' : `View Pipeline (${counts.all})`}
-      </div>
+      <button type="button" className="mobile-drawer-toggle" onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
+        {isDrawerOpen ? '◈ Close' : `◈ Pipeline (${counts.all})`}
+      </button>
 
       {/* 50/50 split or Mobile layout */}
       <main className="main-layout" style={{ flex: 1, height: 'calc(100vh - 56px)', padding: '16px', gap: '16px', overflow: 'hidden', boxSizing: 'border-box' }}>
