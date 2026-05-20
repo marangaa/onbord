@@ -6,21 +6,37 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "devtools": "npx @ai-sdk/devtools"
   },
   "dependencies": {
+    "@ai-sdk/devtools": "^0.0.18",
+    "@ai-sdk/google": "^3.0.75",
+    "@ai-sdk/react": "^3.0.187",
+    "@mem0/vercel-ai-provider": "^2.0.5",
+    "@neondatabase/serverless": "^1.1.0",
+    "@tanstack/react-table": "^8.21.3",
+    "@tavily/ai-sdk": "^0.5.0",
+    "@xyflow/react": "^12.10.2",
+    "ai": "^6.0.185",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
     "typescript": "^5"
   }
 }

@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Onboard GTM
 
-## Getting Started
+Agentic outbound pipeline for Onboard — Africa's cross-border payments infrastructure.
 
-First, run the development server:
+## What This Is
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+A GTM system that automates the outbound loop: **Sources → Verify → Enrich → Score → Personalize → Sequence → Outreach → Measure → (loop back).**
+
+The BD/Sales Manager opens this, adds leads (manually or via agent), and the system automatically enriches, scores, personalizes, and sequences outreach. The BD person focuses on conversations the system can't have.
+
+## Architecture
+
+**7 agents orchestrated through a main controller:**
+
+```mermaid
+flowchart TD
+    User["User input<br/>(chat or manual form)"]
+    ORCH["Orchestrator<br/>gemini-3-pro"]
+    V["Verify<br/>gemini-flash"]
+    E["Enrich<br/>gemini-flash"]
+    S["Score<br/>gemini-flash"]
+    P["Personalize<br/>gemini-flash"]
+    Q["Sequence<br/>gemini-flash"]
+    C["Campaign<br/>gemini-flash"]
+    X["Experiment<br/>gemini-flash"]
+
+    User --> ORCH
+    ORCH --> V --> E --> S --> P --> Q
+    Q -->|results feed back| ORCH
+    ORCH --> C
+    ORCH --> X
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Agent | File | Purpose |
+|-------|------|---------|
+| Orchestrator | `lib/agents/orchestrator.ts` | Routes tasks, coordinates the loop |
+| Verification | `lib/agents/verification.ts` | Checks duplicates, completeness, data quality |
+| Enrichment | `lib/agents/enrichment.ts` | Detects buying signals from lead profile |
+| Scoring | `lib/agents/scoring.ts` | Scores 0-100, assigns ICP segment |
+| Personalization | `lib/agents/personalization.ts` | Generates outreach with `{{variables}}` |
+| Sequencing | `lib/agents/sequencing.ts` | Decides send/wait/skip based on behavior |
+| Campaign | `lib/agents/campaign.ts` | Generates templates, proposes A/B variants |
+| Experiment | `lib/agents/experiment.ts` | Analyzes results, proposes tests |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 16 (App Router) |
+| AI | `@ai-sdk/google` (Gemini 3 Pro + 3.1 Flash) |
+| Memory | Mem0 (optional, self-hostable) |
+| DevTools | `@ai-sdk/devtools` (dev mode) |
+| Database | PostgreSQL (Neon) + Drizzle ORM |
+| Flow | `@xyflow/react` (React Flow) |
+| Types | TypeScript strict, inferred from Drizzle |
 
-## Learn More
+## Setup
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set in `.env.local`:
+```
+DATABASE_URL=postgresql://...
+GOOGLE_GENERATIVE_AI_API_KEY=...
+MEM0_API_KEY=                  # optional
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npx drizzle-kit push
+npm run dev
+```
 
-## Deploy on Vercel
+DevTools (separate terminal):
+```bash
+npx @ai-sdk/devtools
+# opens localhost:4983
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Views
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Route | Purpose |
+|-------|---------|
+| `/` | Pipeline — stats, stage filters, lead table + detail panel |
+| `/campaigns` | Templates with `{{variables}}`, A/B variants |
+| `/results` | Experiment outcomes, metric tracking |
+| `/leads/[id]` | React Flow — one lead's journey through the agent loop |
+
+## Agent Interaction
+
+- **Floating chat** (◈ button, bottom-right) — type commands or lead info. Agent responds with verification, enrichment, scoring, etc.
+- **Manual add** (+ Add Lead button) — modal form for direct lead entry
+- Agents run via `/api/agent` → orchestrator → all tools registered
+
+## Database
+
+6 tables, 4 Postgres enums, 8 indexes. Schema in `lib/db/schema.ts`. Types automatically inferred via Drizzle's `$inferSelect`/`$inferInsert`.
+
+See `docs/architecture.md` for detailed agent contracts and file structure.
