@@ -625,7 +625,11 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
         </div>
       </header>
 
-      <button type="button" className="mobile-drawer-toggle" onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
+      <button 
+        type="button" 
+        className="mobile-drawer-toggle" 
+        onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+      >
         {isDrawerOpen ? '◈ Close' : `◈ Pipeline (${counts.all})`}
       </button>
 
@@ -636,15 +640,15 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
         <section className="chat-panel" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#09090b', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
           <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '20px', minHeight: 0 }}>
             {messages.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '20px', maxWidth: '480px' }}>
-                <div>
-                  <p style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 600, color: '#fff' }}>Good morning.</p>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)', lineHeight: 1.7 }}>Tell me about a company to add, ask me to review your pipeline, or click a lead in Inbox for a reply draft.</p>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', margin: '0 auto', gap: '32px', maxWidth: '520px', width: '100%' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: 600, color: '#fff', letterSpacing: '-0.02em' }}>Good morning.</p>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6 }}>Tell me about a company to add, ask me to review your pipeline, or click a lead in Inbox for a reply draft.</p>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
                   {SUGGESTIONS.map(s => (
                     <button key={s.label} onClick={() => setInput(s.cmd)}
-                      style={{ padding: '14px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                      style={{ padding: '16px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.01)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = '#52525b'; e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent'; }}
                     >
