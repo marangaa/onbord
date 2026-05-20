@@ -609,7 +609,7 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
   ];
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#000', overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#000', overflow: 'hidden' }}>
 
       {/* Header */}
       <header className="app-header" style={{ height: '56px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', background: '#000', flexShrink: 0 }}>
