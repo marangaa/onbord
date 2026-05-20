@@ -140,7 +140,14 @@ function ActiveToolBar({ messages, status }: { messages: any[]; status: string }
 function PipelineCard({ lead, onOutcome }: { lead: Lead; onOutcome: () => void }) {
   const stateColor = getStateColor(lead.state);
   const outreach = lead.meta?.outreach as { subject?: string; body?: string; cta?: string } | undefined;
-  const [expanded, setExpanded] = useState(false);
+  const research = lead.meta?.research as string | undefined;
+  
+  const [outreachExpanded, setOutreachExpanded] = useState(false);
+  const [researchExpanded, setResearchExpanded] = useState(false);
+  const [researchMode, setResearchMode] = useState<'view' | 'edit'>('view');
+  const [researchText, setResearchText] = useState(research || '');
+  const [savingResearch, setSavingResearch] = useState(false);
+
   const [logStage, setLogStage] = useState<'idle' | 'note' | 'done'>('idle');
   const [chosen, setChosen] = useState<typeof OUTCOMES_LIST[0] | null>(null);
   const [notes, setNotes] = useState('');
@@ -163,6 +170,23 @@ function PipelineCard({ lead, onOutcome }: { lead: Lead; onOutcome: () => void }
       onOutcome();
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const saveResearch = async () => {
+    setSavingResearch(true);
+    try {
+      await fetch(`/api/leads/${lead.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ research: researchText }),
+      });
+      setResearchMode('view');
+      onOutcome(); // to refresh data
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingResearch(false);
     }
   };
 
@@ -198,87 +222,141 @@ function PipelineCard({ lead, onOutcome }: { lead: Lead; onOutcome: () => void }
         )}
       </div>
 
+      {/* Enrichment panel */}
+      {research && (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'rgba(255,255,255,0.015)', overflow: 'hidden', marginBottom: outreach?.subject ? '10px' : '0' }}>
+          <div onClick={() => setResearchExpanded(!researchExpanded)} style={{ padding: '7px 12px', borderBottom: researchExpanded ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+            <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: '#fff' }}>◈</span> Enrichment Data
+            </div>
+            <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase' }}>
+              {researchExpanded ? 'Collapse' : 'Expand'}
+            </span>
+          </div>
+          {researchExpanded && (
+            <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
+              {researchMode === 'view' ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                    <button onClick={() => setResearchMode('edit')} style={{ padding: '3px 8px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 600, textTransform: 'uppercase', background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px', color: 'var(--muted)', cursor: 'pointer' }}>Edit</button>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.55, maxHeight: '300px', overflowY: 'auto' }}>
+                    {renderMd(researchText)}
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea
+                    value={researchText}
+                    onChange={(e) => setResearchText(e.target.value)}
+                    rows={12}
+                    style={{ width: '100%', padding: '8px', fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#fff', background: '#09090b', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none', resize: 'vertical' }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button onClick={() => { setResearchMode('view'); setResearchText(research); }} style={{ padding: '4px 10px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 600, textTransform: 'uppercase', background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px', color: 'var(--muted)', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={saveResearch} disabled={savingResearch} style={{ padding: '4px 10px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase', background: 'rgba(74,222,128,0.1)', border: '1px solid #4ade80', borderRadius: '3px', color: '#4ade80', cursor: 'pointer' }}>{savingResearch ? 'Saving...' : 'Save'}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Outreach card */}
       {outreach?.subject && (
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'rgba(255,255,255,0.015)', overflow: 'hidden' }}>
-          {/* Subject */}
-          <div style={{ padding: '7px 12px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Subject</div>
-              <div style={{ fontSize: '11.5px', color: '#fff', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{outreach.subject}</div>
+          {/* Header toggle */}
+          <div onClick={() => setOutreachExpanded(!outreachExpanded)} style={{ padding: '7px 12px', borderBottom: outreachExpanded ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+            <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: '#fff' }}>◈</span> Outreach Draft
             </div>
-            <CopyBtn text={outreach.subject} label="Copy" id={`sub-${lead.id}`} />
+            <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase' }}>
+              {outreachExpanded ? 'Collapse' : 'Expand'}
+            </span>
           </div>
-          {/* Body */}
-          <div style={{ padding: '7px 12px', borderBottom: outreach.cta ? '1px solid var(--border)' : undefined }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-              <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Body</div>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button onClick={() => setExpanded(e => !e)} style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', background: 'transparent', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>{expanded ? 'Collapse' : 'Expand'}</button>
-                <CopyBtn text={outreach.body || ''} label="Copy" id={`body-${lead.id}`} />
+
+          {outreachExpanded && (
+            <>
+              {/* Subject */}
+              <div style={{ padding: '7px 12px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>Subject</div>
+                  <div style={{ fontSize: '11.5px', color: '#fff', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{outreach.subject}</div>
+                </div>
+                <CopyBtn text={outreach.subject} label="Copy" id={`sub-${lead.id}`} />
               </div>
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.55, whiteSpace: 'pre-wrap', maxHeight: expanded ? '400px' : '48px', overflow: 'hidden', transition: 'max-height 0.2s ease' }}>{outreach.body}</div>
-          </div>
-          {/* CTA */}
-          {outreach.cta && (
-            <div style={{ padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ flex: 1, fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{outreach.cta}</div>
-              <CopyBtn text={`${outreach.subject}\n\n${outreach.body}\n\n${outreach.cta}`} label="Copy All" id={`all-${lead.id}`} />
-            </div>
-          )}
-          {/* Action bar */}
-          <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {/* Send */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <a
-                href={lead.contactEmail ? buildMailto(lead.contactEmail, outreach.subject ?? '', `${outreach.body ?? ''}\n\n${outreach.cta ?? ''}`) : '#'}
-                title={lead.contactEmail ? `Open mail client → ${lead.contactEmail}` : 'No email on file — ask the agent'}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', textDecoration: 'none', background: lead.contactEmail ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.02)', border: `1px solid ${lead.contactEmail ? '#4ade80' : 'var(--border)'}`, borderRadius: '3px', color: lead.contactEmail ? '#4ade80' : 'var(--faint)', pointerEvents: lead.contactEmail ? 'auto' : 'none', opacity: lead.contactEmail ? 1 : 0.5 }}
-              >
-                ✉ {lead.contactEmail ? 'Open in Mail' : 'No email on file'}
-              </a>
-              {lead.contactEmail && <span style={{ fontSize: '9px', color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.contactEmail}</span>}
-            </div>
-            {/* Log */}
-            {logStage === 'idle' && (
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Log:</span>
-                {OUTCOMES_LIST.map(o => (
-                  <button key={o.outcome} onClick={() => { setChosen(o); setLogStage('note'); }}
-                    style={{ padding: '3px 8px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px', color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = o.color; e.currentTarget.style.color = o.color; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
+              {/* Body */}
+              <div style={{ padding: '7px 12px', borderBottom: outreach.cta ? '1px solid var(--border)' : undefined }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                  <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Body</div>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <CopyBtn text={outreach.body || ''} label="Copy" id={`body-${lead.id}`} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{outreach.body}</div>
+              </div>
+              {/* CTA */}
+              {outreach.cta && (
+                <div style={{ padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ flex: 1, fontSize: '11px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{outreach.cta}</div>
+                  <CopyBtn text={`${outreach.subject}\n\n${outreach.body}\n\n${outreach.cta}`} label="Copy All" id={`all-${lead.id}`} />
+                </div>
+              )}
+              {/* Action bar */}
+              <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* Send */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <a
+                    href={lead.contactEmail ? buildMailto(lead.contactEmail, outreach.subject ?? '', `${outreach.body ?? ''}\n\n${outreach.cta ?? ''}`) : '#'}
+                    title={lead.contactEmail ? `Open mail client → ${lead.contactEmail}` : 'No email on file — ask the agent'}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', textDecoration: 'none', background: lead.contactEmail ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.02)', border: `1px solid ${lead.contactEmail ? '#4ade80' : 'var(--border)'}`, borderRadius: '3px', color: lead.contactEmail ? '#4ade80' : 'var(--faint)', pointerEvents: lead.contactEmail ? 'auto' : 'none', opacity: lead.contactEmail ? 1 : 0.5 }}
                   >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {logStage === 'note' && chosen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: chosen.color, fontWeight: 700, textTransform: 'uppercase' }}>{chosen.label}</span>
-                  <span style={{ fontSize: '9px', color: 'var(--faint)' }}>— add context?</span>
-                  <button onClick={() => { setLogStage('idle'); setChosen(null); setNotes(''); }} style={{ marginLeft: 'auto', fontSize: '8px', color: 'var(--faint)', background: 'transparent', border: 'none', cursor: 'pointer' }}>✕</button>
+                    ✉ {lead.contactEmail ? 'Open in Mail' : 'No email on file'}
+                  </a>
+                  {lead.contactEmail && <span style={{ fontSize: '9px', color: '#3f3f46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.contactEmail}</span>}
                 </div>
-                <textarea autoFocus value={notes} onChange={e => setNotes(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); confirmOutcome(); } }}
-                  placeholder="Optional — what did they say?" rows={2}
-                  style={{ width: '100%', padding: '6px 8px', fontSize: '11px', fontFamily: 'var(--font-sans)', color: '#fff', background: '#09090b', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
-                />
-                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '9px', color: 'var(--faint)', alignSelf: 'center' }}>Enter to confirm</span>
-                  <button onClick={confirmOutcome} disabled={submitting} style={{ padding: '4px 10px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase', background: chosen.color + '22', border: `1px solid ${chosen.color}`, borderRadius: '3px', color: chosen.color, cursor: 'pointer' }}>
-                    {submitting ? '...' : 'Confirm'}
-                  </button>
-                </div>
+                {/* Log */}
+                {logStage === 'idle' && (
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Log:</span>
+                    {OUTCOMES_LIST.map(o => (
+                      <button key={o.outcome} onClick={() => { setChosen(o); setLogStage('note'); }}
+                        style={{ padding: '3px 8px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px', color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = o.color; e.currentTarget.style.color = o.color; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {logStage === 'note' && chosen && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: chosen.color, fontWeight: 700, textTransform: 'uppercase' }}>{chosen.label}</span>
+                      <span style={{ fontSize: '9px', color: 'var(--faint)' }}>— add context?</span>
+                      <button onClick={() => { setLogStage('idle'); setChosen(null); setNotes(''); }} style={{ marginLeft: 'auto', fontSize: '8px', color: 'var(--faint)', background: 'transparent', border: 'none', cursor: 'pointer' }}>✕</button>
+                    </div>
+                    <textarea autoFocus value={notes} onChange={e => setNotes(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); confirmOutcome(); } }}
+                      placeholder="Optional — what did they say?" rows={2}
+                      style={{ width: '100%', padding: '6px 8px', fontSize: '11px', fontFamily: 'var(--font-sans)', color: '#fff', background: '#09090b', border: '1px solid var(--border)', borderRadius: '4px', outline: 'none', resize: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                      <span style={{ fontSize: '9px', color: 'var(--faint)', alignSelf: 'center' }}>Enter to confirm</span>
+                      <button onClick={confirmOutcome} disabled={submitting} style={{ padding: '4px 10px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase', background: chosen.color + '22', border: `1px solid ${chosen.color}`, borderRadius: '3px', color: chosen.color, cursor: 'pointer' }}>
+                        {submitting ? '...' : 'Confirm'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {logStage === 'done' && chosen && (
+                  <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: chosen.color, fontWeight: 700, textTransform: 'uppercase' }}>✓ {chosen.label} logged</span>
+                )}
               </div>
-            )}
-            {logStage === 'done' && chosen && (
-              <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: chosen.color, fontWeight: 700, textTransform: 'uppercase' }}>✓ {chosen.label} logged</span>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -466,6 +544,7 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [input, setInput] = useState('');
   const [pipelineFilter, setPipelineFilter] = useState<PipelineFilter>('all');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const { messages, status, sendMessage, error } = useChat({
@@ -546,11 +625,15 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
         </div>
       </header>
 
-      {/* 50/50 split */}
-      <main style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', height: 'calc(100vh - 56px)', padding: '16px', gap: '16px', overflow: 'hidden', boxSizing: 'border-box' }}>
+      <div className="mobile-drawer-toggle" onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
+        {isDrawerOpen ? 'Close Pipeline & Inbox' : `View Pipeline (${counts.all})`}
+      </div>
+
+      {/* 50/50 split or Mobile layout */}
+      <main className="main-layout" style={{ flex: 1, height: 'calc(100vh - 56px)', padding: '16px', gap: '16px', overflow: 'hidden', boxSizing: 'border-box' }}>
 
         {/* ── LEFT: Chat ── */}
-        <section style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#09090b', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+        <section className="chat-panel" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#09090b', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
           <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '20px', minHeight: 0 }}>
             {messages.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '20px', maxWidth: '480px' }}>
@@ -639,7 +722,8 @@ export default function AgentConsole({ leads: initialLeads }: { leads: Lead[] })
         </section>
 
         {/* ── RIGHT: Pipeline / Inbox ── */}
-        <section style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#09090b', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+        <div className={`mobile-drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)} />
+        <section className={`pipeline-panel ${isDrawerOpen ? 'open' : ''}`} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: '#09090b', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
           {/* Filter header */}
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
